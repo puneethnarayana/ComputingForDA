@@ -1,19 +1,49 @@
 corr <- function(directory, threshold = 0) {
-  page <- 1
-  data <- list()
-  output <- list()
+        ## 'directory' is a character vector of length 1 indicating
+        ## the location of the CSV files
 
-  while (page <= 20){
-    while (nchar(as.character(page)) < 3){
-      page <- paste("0",as.character(page), sep="")
-    }
-    
-    idString <- paste(directory,"\\",page,".csv",sep="")
-    if(nrow(na.omit(read.csv(idString))) >= threshold) {
-      data <- na.omit(read.csv(idString))
-      output <- append(output, cor(data$sulfate,data$nitrate))
-    }
-    page <- as.numeric(page) + 1
-  }
-  return(as.numeric(output))
+        ## 'threshold' is a numeric vector of length 1 indicating the
+        ## number of completely observed observations (on all
+        ## variables) required to compute the correlation between
+        ## nitrate and sulfate; the default is 0
+
+        ## Return a numeric vector of correlations
+	data<-complete(directory)
+	clean<-na.omit(data[data$nobs>threshold,])
+	cleanids<-clean[,1]
+	out <- vector(mode="numeric", length=0)
+	for(i in cleanids){
+		csvfiles <- sprintf("/Users/puneeth_nn/Documents/%s/%03d.csv", directory, as.numeric(i))
+		##print(csvfiles)
+		frame<-read.csv(csvfiles)
+		frame<-na.omit(frame)
+
+		##print(frame)
+		corr<-cor(as.numeric(frame$sulfate),as.numeric(frame$nitrate))
+		 out <- append(out, corr)
+		##print("OUT")
+	}
+	return(out)
 }
+
+complete <- function(directory,id = 1:332) {
+
+   iid<-id
+
+   csvfiles <- sprintf("/Users/puneeth_nn/Documents/%s/%03d.csv", directory, as.numeric(iid))
+
+   ##nrows <- sapply( csvfiles, function(f) nrow(read.csv(f)))
+   ##final<-read.csv(is.character(nrows))
+   ##omitted<-final[complete.cases(final),]
+	##rownew<-nrow(omitted)
+	##print(rownew)
+   nrows <- sapply( csvfiles, function(f) nrow(read.csv(f)))
+   ##sum(nrows)
+	##print(nrows)
+        rowlabels <- nrow(nrows)
+
+        data.frame(id=sprintf('%3d', iid), 
+            nobs=sapply(csvfiles,function(f) nrow(na.omit(read.csv(f))))
+		,row.names=rowlabels
+           )
+       }
